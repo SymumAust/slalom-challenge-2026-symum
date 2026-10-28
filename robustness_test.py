@@ -1,11 +1,13 @@
-"""Robustness test: drive one Easy plan on courses whose cones are moved toward the car.
+
+"""Robustness test: drive one solution on courses whose cones are moved toward the car.
 
 Every cone is shifted by `shift` metres toward the side the car passes on, so the
-course gets harder while the plan stays the same. The plan is safe up to the
-largest shift that still succeeds.
+course gets harder while the solution stays the same. The solution is safe up to
+the largest shift that still succeeds.
 
 Usage:
-    python robustness_test.py --plan plan_best.json --shifts 0 0.2 0.3 0.4 0.5
+    Easy:  python robustness_test.py --plan plan_best.json --shifts 0 0.2 0.3 0.4 0.5
+    Full:  python robustness_test.py --controller my_controller.py --shifts 0 0.2 0.3 0.4 0.5
 """
 
 import argparse
@@ -37,22 +39,27 @@ def shifted_course(shift, folder):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--plan", required=True, help="Easy plan JSON to test")
+    group = ap.add_mutually_exclusive_group(required=True)
+    group.add_argument("--plan", help="Easy plan JSON to test")
+    group.add_argument("--controller", help="Full-mode controller file to test")
     ap.add_argument("--shifts", type=float, nargs="+", default=[0.0, 0.2, 0.3, 0.4, 0.5])
     ap.add_argument("--output", default="runs/robustness")
     args = ap.parse_args()
 
-    folder = Path(args.output) / Path(args.plan).stem
+    mode = "easy" if args.plan else "full"
+    tested = args.plan or args.controller
+    folder = Path(args.output) / Path(tested).stem
     folder.mkdir(parents=True, exist_ok=True)
     rows = []
     for shift in args.shifts:
         config = shifted_course(shift, folder)
         with contextlib.redirect_stdout(io.StringIO()):  # hide the runner's long printout
-            result = run(None, config, folder / f"run_shift_{shift}", mode="easy", plan_path=args.plan)
+            result = run(args.controller, config, folder / f"run_shift_{shift}",
+                         mode=mode, plan_path=args.plan)
         rows.append((shift, result["status"], result["finish_time_s"], result["min_clearance_m"]))
         print(f"shift {shift:4.2f} m: {result['status']}", flush=True)
 
-    print(f"\nplan: {args.plan}")
+    print(f"\n{mode} solution: {tested}")
     print("cone shift (m)  status         finish (s)  min clearance (m)")
     for shift, status, finish, clearance in rows:
         finish_text = f"{finish:.3f}" if finish is not None else "-"
