@@ -69,13 +69,13 @@ set_lattice()
 def default_bounds():
     return {
         "max_abs_y": 4.0,  # stay well inside the 5.5 m road half-width
-        "max_speed": 11.5,  # course limit is 12 m/s
+        "max_speed": 11.8,  # course limit is 12 m/s
         "max_angle": 0.6,  # rad, keeps heading far from the 1.3 rad limit
         "accel_scale": 1.0,  # fraction of the model's achievable acceleration
         "max_decel": 6.0,
         "max_lat_accel": 8.0,  # tested safe in PyChrono
         "gate_margin": 1.2,  # REF offset at each gate (m)
-        "body_margin": 0.45,  # footprint-to-cone clearance along each segment (m)
+        "body_margin": 0.4,  # footprint-to-cone clearance along each segment (m)
         "road_margin": 0.8,  # footprint-to-road-edge clearance (m)
     }
 

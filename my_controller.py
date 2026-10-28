@@ -20,9 +20,10 @@ def clamp(x, lo, hi):
 class Controller:
     # tracker gains (tuned in PyChrono)
     LOOK_BASE = 0.5  # lookahead distance at standstill (m)
-    LOOK_GAIN = 0.2  # extra lookahead per m/s (s)
+    LOOK_GAIN = 0.1  # extra lookahead per m/s (s)
     SPEED_PREVIEW = 3.0  # read the speed target this far ahead (m)
     SPEED_GAIN = 2.5  # acceleration request per m/s of speed error (1/s)
+    SMOOTH_M = 5.0  # moving-average window that rounds off the path corners (m)
 
     def reset(self, scenario, seed):
         self.scenario = scenario
@@ -38,6 +39,12 @@ class Controller:
         ext_s = np.append(s, s[-1] + 30.0)
         self.dx = np.interp(self.ds, ext_s, ext_x)
         self.dy = np.interp(self.ds, ext_s, ext_y)
+        # round off the polyline corners: a short lookahead otherwise reacts to every
+        # kink between DP nodes and the steering starts to oscillate at ~11 m/s
+        n = int(self.SMOOTH_M / 0.1)
+        if n > 1:
+            pad = np.r_[np.full(n, self.dy[0]), self.dy, np.full(n, self.dy[-1])]
+            self.dy = np.convolve(pad, np.ones(n) / n, mode="same")[n:-n]
         self.last_i = 0
 
     def speed_target(self, x):
