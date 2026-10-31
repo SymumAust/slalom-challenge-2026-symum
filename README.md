@@ -1,4 +1,56 @@
+Slalom Challenge 2026 - Learning-Based Control for Mobility Systems
+MD SYMUM HOSSAIN (ID: 20264789)
+
+MODE TO EVALUATE: FULL
+  Full : controller.py + full_reference.npz   -> 14.696 s, min clearance 0.414 m
+  Easy : easy_plan.json (supporting work)     -> 16.333 s, min clearance 0.440 m
+  (results from run_local.py on my PC, supplied slalom2026 environment)
+
+FILES
+  report.pdf          report (method, own validation, AI use)
+  controller.py       Full-mode entry point (class Controller with reset/act)
+  full_reference.npz  the only file controller.py loads, read from its own folder:
+                      DP reference path (x, y), planned speeds (v), supplied fitted
+                      steering map (steer_gain, steer_speed2), planner settings (bounds)
+  full_dp.py          backward-DP planner that produces full_reference.npz
+  easy_plan.json      Easy-mode plan, 32 stages (0.5 s each)
+  easy_dp.py          backward-DP planner that produces easy_plan.json
+
+EVALUATION (no retraining; imports: math, pathlib, numpy only; no extra packages)
+  python run_local.py --mode full --controller controller.py --output runs/full
+  python run_local.py --mode easy --plan easy_plan.json --output runs/easy
+
+HOW THE FILES WERE GENERATED
+  Copy easy_dp.py and full_dp.py into the repository root and run them there
+  (they read course.json, easy_spec.json, model_parameters.json and contract.py
+  from the supplied repository).
+
+  Easy plan (prints "stages: 32 (virtual time 16.0 s)"):
+    python easy_dp.py --gate-margin 2.0 --max-angle-change 0.5 --max-lat-accel 8 --output easy_plan.json
+    Other bounds = suggested values in easy_spec.json.
+
+  Full reference (prints "stages: 29 (virtual time to the finish line 14.33 s)"):
+    python full_dp.py --output full_reference.npz
+    Default settings are the final ones: grid 0.25 x 0.25 m, 0.5 s stages,
+    m <= 23, |n| <= 8; speed <= 11.8 m/s; acceleration limited by the input
+    adapter's achievable a_max(v); lateral acceleration <= 8 m/s^2;
+    gate offset >= 1.2 m; car body >= 0.4 m from every cone;
+    body >= 0.8 m inside the road edge; |Y| <= 4 m.
+
+CONTROLLER SETTINGS (constants inside controller.py)
+  path smoothing 5 m moving average; pure pursuit from the rear axle,
+  lookahead L_d = 0.5 + 0.1*v_x; speed control a_x = 2.5*(v_ref - v_x),
+  v_ref = planned speed 3 m ahead, capped at 11.6 m/s.
+  These values were chosen by PyChrono runs with the rule in Section III of
+  the report (fastest run with clearance >= 0.3 m whose neighbouring settings
+  also kept >= 0.3 m).
+
+No training data, neural networks or RL libraries are used.
+
+
+
 # Slalom Challenge
+
 
 In this individual 2026 **Learning-Based Control for Mobility Systems** challenge, drive a PyChrono BMW E90 through eight alternating cones and finish as fast as possible. Stay on the road, avoid contact, respect vehicle limits, and justify your design using course methods.
 
